@@ -146,9 +146,8 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-          merge-multiple: true
-          pattern: 'release_stable_*' # We only publish stable releases
-          path: artifacts
+          name: release_stable_x86_64-unknown-linux-gnu # We only publish a single target
+          path: target
 
       - name: Organise checksums
         run: |
@@ -162,5 +161,10 @@ jobs:
         with:
           draft: true
           tag_name: ${{ github.ref_name }}
-          files: assets/*
+          files: |
+            target/package/viral32111-stomp-${{ github.ref_name }}.crate
+            MD5SUMS.txt
+            SHA1SUMS.txt
+            SHA256SUMS.txt
+            SHA512SUMS.txt
           token: ${{ secrets.GITHUB_TOKEN }}
