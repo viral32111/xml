@@ -59,20 +59,20 @@ jobs:
 
       - name: Calculate checksums
         run: |
-          export BINARY_PATH=$(find target -type f -executable -name 'xml*')
-          echo "Found binary at '${BINARY_PATH}'"
+          export CRATE_PATH=$(find target -type f -name 'viral32111-xml-*.*.*.crate')
+          echo "Found crate at '${CRATE_PATH}'"
 
-          md5sum "${BINARY_PATH}" | cut --delimiter ' ' --fields 1 | tee "${BINARY_PATH}.md5"
-          echo "MD5 checksum of '${BINARY_PATH}' is '$(cat "${BINARY_PATH}.md5")'"
+          md5sum "${CRATE_PATH}" | cut --delimiter ' ' --fields 1 | tee "${CRATE_PATH}.md5"
+          echo "MD5 checksum of '${CRATE_PATH}' is '$(cat "${CRATE_PATH}.md5")'"
 
-          sha1sum "${BINARY_PATH}" | cut --delimiter ' ' --fields 1 | tee "${BINARY_PATH}.sha1"
-          echo "SHA-1 checksum of '${BINARY_PATH}' is '$(cat "${BINARY_PATH}.sha1")'"
+          sha1sum "${CRATE_PATH}" | cut --delimiter ' ' --fields 1 | tee "${CRATE_PATH}.sha1"
+          echo "SHA-1 checksum of '${CRATE_PATH}' is '$(cat "${CRATE_PATH}.sha1")'"
 
-          sha256sum "${BINARY_PATH}" | cut --delimiter ' ' --fields 1 | tee "${BINARY_PATH}.sha256"
-          echo "SHA-256 checksum of '${BINARY_PATH}' is '$(cat "${BINARY_PATH}.sha256")'"
+          sha256sum "${CRATE_PATH}" | cut --delimiter ' ' --fields 1 | tee "${CRATE_PATH}.sha256"
+          echo "SHA-256 checksum of '${CRATE_PATH}' is '$(cat "${CRATE_PATH}.sha256")'"
 
-          sha512sum "${BINARY_PATH}" | cut --delimiter ' ' --fields 1 | tee "${BINARY_PATH}.sha512"
-          echo "SHA-512 checksum of '${BINARY_PATH}' is '$(cat "${BINARY_PATH}.sha512")'"
+          sha512sum "${CRATE_PATH}" | cut --delimiter ' ' --fields 1 | tee "${CRATE_PATH}.sha512"
+          echo "SHA-512 checksum of '${CRATE_PATH}' is '$(cat "${CRATE_PATH}.sha512")'"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -97,6 +97,8 @@ jobs:
           rustup toolchain install stable
 
       - name: Publish crate
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: cargo publish --verbose --locked
 
   deploy:
@@ -121,7 +123,7 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v4
         with:
-          name: release_stable_x86_64-unknown-linux-gnu # We only deploy for a single target
+          name: release_stable_x86_64-unknown-linux-gnu # We only deploy a single target
           path: target
 
       - name: Upload to GitHub Pages
@@ -148,41 +150,13 @@ jobs:
           pattern: 'release_stable_*' # We only publish stable releases
           path: artifacts
 
-      - name: Organise artifacts
+      - name: Organise checksums
         run: |
-          mkdir --verbose --parents assets
-          cp --verbose --archive artifacts/x86_64-unknown-linux-gnu/release/xml assets/xml_linux_x86_64_glibc
-          cp --verbose --archive artifacts/x86_64-unknown-linux-musl/release/xml assets/xml_linux_x86_64_musl
-          cp --verbose --archive artifacts/aarch64-unknown-linux-gnu/release/xml assets/xml_linux_aarch64_glibc
-          cp --verbose --archive artifacts/aarch64-unknown-linux-musl/release/xml assets/xml_linux_aarch64_musl
-          cp --verbose --archive artifacts/x86_64-pc-windows-gnu/release/xml.exe assets/xml_windows_x86_64.exe
-
-      - name: Merge checksums
-        run: |
-          echo "$(cat artifacts/x86_64-unknown-linux-gnu/release/xml.md5) xml_linux_x86_64_glibc" | tee --append assets/MD5SUMS.txt
-          echo "$(cat artifacts/x86_64-unknown-linux-musl/release/xml.md5) xml_linux_x86_64_musl" | tee --append assets/MD5SUMS.txt
-          echo "$(cat artifacts/aarch64-unknown-linux-gnu/release/xml.md5) xml_linux_aarch64_glibc" | tee --append assets/MD5SUMS.txt
-          echo "$(cat artifacts/aarch64-unknown-linux-musl/release/xml.md5) xml_linux_aarch64_musl" | tee --append assets/MD5SUMS.txt
-          echo "$(cat artifacts/x86_64-pc-windows-gnu/release/xml.exe.md5) xml_windows_x86_64.exe" | tee --append assets/MD5SUMS.txt
-
-          echo "$(cat artifacts/x86_64-unknown-linux-gnu/release/xml.sha1) xml_linux_x86_64_glibc" | tee --append assets/SHA1SUMS.txt
-          echo "$(cat artifacts/x86_64-unknown-linux-musl/release/xml.sha1) xml_linux_x86_64_musl" | tee --append assets/SHA1SUMS.txt
-          echo "$(cat artifacts/aarch64-unknown-linux-gnu/release/xml.sha1) xml_linux_aarch64_glibc" | tee --append assets/SHA1SUMS.txt
-          echo "$(cat artifacts/aarch64-unknown-linux-musl/release/xml.sha1) xml_linux_aarch64_musl" | tee --append assets/SHA1SUMS.txt
-          echo "$(cat artifacts/x86_64-pc-windows-gnu/release/xml.exe.sha1) xml_windows_x86_64.exe" | tee --append assets/SHA1SUMS.txt
-
-          echo "$(cat artifacts/x86_64-unknown-linux-gnu/release/xml.sha256) xml_linux_x86_64_glibc" | tee --append assets/SHA256SUMS.txt
-          echo "$(cat artifacts/x86_64-unknown-linux-musl/release/xml.sha256) xml_linux_x86_64_musl" | tee --append assets/SHA256SUMS.txt
-          echo "$(cat artifacts/aarch64-unknown-linux-gnu/release/xml.sha256) xml_linux_aarch64_glibc" | tee --append assets/SHA256SUMS.txt
-          echo "$(cat artifacts/aarch64-unknown-linux-musl/release/xml.sha256) xml_linux_aarch64_musl" | tee --append assets/SHA256SUMS.txt
-          echo "$(cat artifacts/x86_64-pc-windows-gnu/release/xml.exe.sha256) xml_windows_x86_64.exe" | tee --append assets/SHA256SUMS.txt
-
-          echo "$(cat artifacts/x86_64-unknown-linux-gnu/release/xml.sha512) xml_linux_x86_64_glibc" | tee --append assets/SHA512SUMS.txt
-          echo "$(cat artifacts/x86_64-unknown-linux-musl/release/xml.sha512) xml_linux_x86_64_musl" | tee --append assets/SHA512SUMS.txt
-          echo "$(cat artifacts/aarch64-unknown-linux-gnu/release/xml.sha512) xml_linux_aarch64_glibc" | tee --append assets/SHA512SUMS.txt
-          echo "$(cat artifacts/aarch64-unknown-linux-musl/release/xml.sha512) xml_linux_aarch64_musl" | tee --append assets/SHA512SUMS.txt
-          echo "$(cat artifacts/x86_64-pc-windows-gnu/release/xml.exe.sha512) xml_windows_x86_64.exe" | tee --append assets/SHA512SUMS.txt
-
+          echo "$(cat target/package/viral32111-xml-${{ github.ref_name }}.crate.md5) viral32111-xml-${{ github.ref_name }}.crate" | tee --append MD5SUMS.txt
+          echo "$(cat target/package/viral32111-xml-${{ github.ref_name }}.crate.sha1) viral32111-xml-${{ github.ref_name }}.crate" | tee --append SHA1SUMS.txt
+          echo "$(cat target/package/viral32111-xml-${{ github.ref_name }}.crate.sha256) viral32111-xml-${{ github.ref_name }}.crate" | tee --append SHA256SUMS.txt
+          echo "$(cat target/package/viral32111-xml-${{ github.ref_name }}.crate.sha512) viral32111-xml-${{ github.ref_name }}.crate" | tee --append SHA512SUMS.txt
+  
       - name: Create draft release
         uses: softprops/action-gh-release@v1
         with:
