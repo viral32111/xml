@@ -1,6 +1,16 @@
 [package]
-name = "xml"
+name = "viral32111-xml"
 version = "0.1.0"
+description = "XML parser crate for my Rust projects."
+homepage = "https://github.com/viral32111/xml"
+documentation = "https://viral32111.github.io/xml/xml"
+authors = [ "viral32111 <contact@viral32111.com>" ]
+readme = "README.md"
+license = "AGPL-3.0-only"
+keywords = [ "xml-parser", "data-structures" ]
+categories = [ "command-line-utilities", "data-structures" ]
+include = [ "src", "README.md", "LICENSE.txt" ]
 edition = "2021"
+rust-version = "1.77"
 
 [dependencies]

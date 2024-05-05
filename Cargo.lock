@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "xml"
+name = "viral32111-xml"
 version = "0.1.0"
