@@ -162,7 +162,7 @@ jobs:
           draft: true
           tag_name: ${{ github.ref_name }}
           files: |
-            target/package/viral32111-stomp-${{ github.ref_name }}.crate
+            target/package/viral32111-xml-${{ github.ref_name }}.crate
             MD5SUMS.txt
             SHA1SUMS.txt
             SHA256SUMS.txt
