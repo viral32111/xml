@@ -1,0 +1,170 @@
+name: CI
+
+on:
+  push:
+    paths:
+      - '**'
+    branches:
+      - '**'
+    tags:
+      - '*.*.*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        profile:
+          - dev
+          - release
+        toolchain:
+          - stable
+          - beta
+          - nightly
+        target:
+          - x86_64-unknown-linux-gnu # Linux (glibc) on 64-bit x86
+          - x86_64-unknown-linux-musl # Linux (musl) on 64-bit x86
+          - aarch64-unknown-linux-gnu # Linux (glibc) on 64-bit ARM
+          - aarch64-unknown-linux-musl # Linux (musl) on 64-bit ARM
+          - x86_64-pc-windows-gnu # Windows on 64-bit x86
+    permissions:
+      contents: read
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        run: |
+          rustup set profile minimal
+          rustup toolchain install ${{ matrix.toolchain }}
+          rustup target add ${{ matrix.target }}
+
+      - name: Install cross-compiler
+        run: cargo install cross
+
+      - name: Build code
+        run: cross build --verbose --locked --profile ${{ matrix.profile }} --target ${{ matrix.target }}
+
+      - name: Test code
+        if: ${{ matrix.target != 'x86_64-pc-windows-gnu' }}
+        run: cross test --verbose --locked --profile ${{ matrix.profile }} --target ${{ matrix.target }}
+
+      - name: Generate documentation
+        run: cross doc --verbose --locked --profile ${{ matrix.profile }} --target ${{ matrix.target }}
+
+      - name: Calculate checksums
+        run: |
+          export BINARY_PATH=$(find target -type f -executable -name 'xml*')
+          echo "Found binary at '${BINARY_PATH}'"
+
+          md5sum "${BINARY_PATH}" | cut --delimiter ' ' --fields 1 | tee "${BINARY_PATH}.md5"
+          echo "MD5 checksum of '${BINARY_PATH}' is '$(cat "${BINARY_PATH}.md5")'"
+
+          sha1sum "${BINARY_PATH}" | cut --delimiter ' ' --fields 1 | tee "${BINARY_PATH}.sha1"
+          echo "SHA-1 checksum of '${BINARY_PATH}' is '$(cat "${BINARY_PATH}.sha1")'"
+
+          sha256sum "${BINARY_PATH}" | cut --delimiter ' ' --fields 1 | tee "${BINARY_PATH}.sha256"
+          echo "SHA-256 checksum of '${BINARY_PATH}' is '$(cat "${BINARY_PATH}.sha256")'"
+
+          sha512sum "${BINARY_PATH}" | cut --delimiter ' ' --fields 1 | tee "${BINARY_PATH}.sha512"
+          echo "SHA-512 checksum of '${BINARY_PATH}' is '$(cat "${BINARY_PATH}.sha512")'"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.profile }}_${{ matrix.toolchain }}_${{ matrix.target }}
+          path: target
+
+  deploy:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' && (github.ref_name == 'main' || github.ref_type == 'tag') }}
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}/help.html
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - name: Setup GitHub Pages
+        uses: actions/configure-pages@v3
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: release_stable_x86_64-unknown-linux-gnu # We only deploy for a single target
+          path: target
+
+      - name: Upload to GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: target/x86_64-unknown-linux-gnu/doc
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: build
+    if: ${{ github.event_name == 'push' && github.ref_type == 'tag' }}
+    permissions:
+      contents: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+          pattern: 'release_stable_*' # We only publish stable releases
+          path: artifacts
+
+      - name: Organise artifacts
+        run: |
+          mkdir --verbose --parents assets
+          cp --verbose --archive artifacts/x86_64-unknown-linux-gnu/release/xml assets/xml_linux_x86_64_glibc
+          cp --verbose --archive artifacts/x86_64-unknown-linux-musl/release/xml assets/xml_linux_x86_64_musl
+          cp --verbose --archive artifacts/aarch64-unknown-linux-gnu/release/xml assets/xml_linux_aarch64_glibc
+          cp --verbose --archive artifacts/aarch64-unknown-linux-musl/release/xml assets/xml_linux_aarch64_musl
+          cp --verbose --archive artifacts/x86_64-pc-windows-gnu/release/xml.exe assets/xml_windows_x86_64.exe
+
+      - name: Merge checksums
+        run: |
+          echo "$(cat artifacts/x86_64-unknown-linux-gnu/release/xml.md5) xml_linux_x86_64_glibc" | tee --append assets/MD5SUMS.txt
+          echo "$(cat artifacts/x86_64-unknown-linux-musl/release/xml.md5) xml_linux_x86_64_musl" | tee --append assets/MD5SUMS.txt
+          echo "$(cat artifacts/aarch64-unknown-linux-gnu/release/xml.md5) xml_linux_aarch64_glibc" | tee --append assets/MD5SUMS.txt
+          echo "$(cat artifacts/aarch64-unknown-linux-musl/release/xml.md5) xml_linux_aarch64_musl" | tee --append assets/MD5SUMS.txt
+          echo "$(cat artifacts/x86_64-pc-windows-gnu/release/xml.exe.md5) xml_windows_x86_64.exe" | tee --append assets/MD5SUMS.txt
+
+          echo "$(cat artifacts/x86_64-unknown-linux-gnu/release/xml.sha1) xml_linux_x86_64_glibc" | tee --append assets/SHA1SUMS.txt
+          echo "$(cat artifacts/x86_64-unknown-linux-musl/release/xml.sha1) xml_linux_x86_64_musl" | tee --append assets/SHA1SUMS.txt
+          echo "$(cat artifacts/aarch64-unknown-linux-gnu/release/xml.sha1) xml_linux_aarch64_glibc" | tee --append assets/SHA1SUMS.txt
+          echo "$(cat artifacts/aarch64-unknown-linux-musl/release/xml.sha1) xml_linux_aarch64_musl" | tee --append assets/SHA1SUMS.txt
+          echo "$(cat artifacts/x86_64-pc-windows-gnu/release/xml.exe.sha1) xml_windows_x86_64.exe" | tee --append assets/SHA1SUMS.txt
+
+          echo "$(cat artifacts/x86_64-unknown-linux-gnu/release/xml.sha256) xml_linux_x86_64_glibc" | tee --append assets/SHA256SUMS.txt
+          echo "$(cat artifacts/x86_64-unknown-linux-musl/release/xml.sha256) xml_linux_x86_64_musl" | tee --append assets/SHA256SUMS.txt
+          echo "$(cat artifacts/aarch64-unknown-linux-gnu/release/xml.sha256) xml_linux_aarch64_glibc" | tee --append assets/SHA256SUMS.txt
+          echo "$(cat artifacts/aarch64-unknown-linux-musl/release/xml.sha256) xml_linux_aarch64_musl" | tee --append assets/SHA256SUMS.txt
+          echo "$(cat artifacts/x86_64-pc-windows-gnu/release/xml.exe.sha256) xml_windows_x86_64.exe" | tee --append assets/SHA256SUMS.txt
+
+          echo "$(cat artifacts/x86_64-unknown-linux-gnu/release/xml.sha512) xml_linux_x86_64_glibc" | tee --append assets/SHA512SUMS.txt
+          echo "$(cat artifacts/x86_64-unknown-linux-musl/release/xml.sha512) xml_linux_x86_64_musl" | tee --append assets/SHA512SUMS.txt
+          echo "$(cat artifacts/aarch64-unknown-linux-gnu/release/xml.sha512) xml_linux_aarch64_glibc" | tee --append assets/SHA512SUMS.txt
+          echo "$(cat artifacts/aarch64-unknown-linux-musl/release/xml.sha512) xml_linux_aarch64_musl" | tee --append assets/SHA512SUMS.txt
+          echo "$(cat artifacts/x86_64-pc-windows-gnu/release/xml.exe.sha512) xml_windows_x86_64.exe" | tee --append assets/SHA512SUMS.txt
+
+      - name: Create draft release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          tag_name: ${{ github.ref_name }}
+          files: assets/*
+          token: ${{ secrets.GITHUB_TOKEN }}

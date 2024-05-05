@@ -1,0 +1,8 @@
+# Sort imports
+reorder_imports = true
+
+# Indent with tabs
+hard_tabs = true
+
+# Line endings
+newline_style = "Unix"

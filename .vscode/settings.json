@@ -1,0 +1,51 @@
+{
+	// Title
+	"window.title": "XML",
+
+	// Tidy up code on save
+	"editor.formatOnSave": true,
+	"editor.defaultFormatter": "rust-lang.rust-analyzer",
+	"rust-analyzer.linkedProjects": [
+		"Cargo.toml"
+	],
+
+	// Indent with tabs
+	"editor.detectIndentation": true,
+	"editor.insertSpaces": false,
+	"editor.indentSize": "tabSize",
+	"editor.tabSize": 4,
+
+	// Linux compatible line endings
+	"files.eol": "\n",
+
+	// Force file type association
+	"files.associations": {
+		"*.env*": "dotenv"
+	},
+
+	// Quality-of-life features
+	"editor.inlayHints.enabled": "offUnlessPressed",
+	"editor.bracketPairColorization.enabled": true,
+
+	// Smoother animations
+	"editor.smoothScrolling": true,
+	"editor.cursorBlinking": "smooth",
+	"editor.cursorStyle": "line-thin",
+	"editor.cursorSmoothCaretAnimation": "on",
+	"terminal.integrated.smoothScrolling": true,
+	"workbench.list.smoothScrolling": true,
+
+	// Indent with spaces in YAML files
+	"[yaml]": {
+		"editor.insertSpaces": true,
+		"editor.tabSize": 2,
+	},
+
+	// Check code & documentation for spelling mistakes
+	"cSpell.language": "en-GB",
+	"cSpell.files": [
+		"src/**/*",
+		"**/*.md"
+	],
+	"cSpell.words": []
+}
