@@ -157,7 +157,7 @@ jobs:
           echo "$(cat target/package/viral32111-xml-${{ github.ref_name }}.crate.sha512) viral32111-xml-${{ github.ref_name }}.crate" | tee --append SHA512SUMS.txt
   
       - name: Create draft release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           draft: true
           tag_name: ${{ github.ref_name }}
