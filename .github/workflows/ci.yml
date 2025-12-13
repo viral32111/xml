@@ -75,7 +75,7 @@ jobs:
           echo "SHA-512 checksum of '${CRATE_PATH}' is '$(cat "${CRATE_PATH}.sha512")'"
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ matrix.profile }}_${{ matrix.toolchain }}_${{ matrix.target }}
           path: target
@@ -121,7 +121,7 @@ jobs:
         uses: actions/configure-pages@v5
 
       - name: Download artifact
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: release_stable_x86_64-unknown-linux-gnu # We only deploy a single target
           path: target
@@ -144,7 +144,7 @@ jobs:
       contents: write
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: release_stable_x86_64-unknown-linux-gnu # We only publish a single target
           path: target
